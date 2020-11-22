@@ -1,0 +1,610 @@
+<?php
+ $db_server = '127.0.1.1';
+ $db_username = 'root';
+ $db_password = '';
+ $db_name = 'web_tech_project'; 
+ $conn = new mysqli($db_server, $db_username, $db_password, $db_name);
+ $mysqli=$con=$conn;
+ if ($conn->connect_error){
+ $error = $conn->connect_error;
+ echo("Not connected: " . $error);
+ exit;
+ }
+?>
+<?php
+
+ require_once('db_connect.php');
+
+ class DBController{
+ public static $host;
+ public static $user;
+ public static $password;
+ public static $database;
+ protected $conn;
+
+ function __construct(){
+ $this->conn = $this->connectDB(); 
+}
+
+function connectDB(){
+$conn = new mysqli(self::$host,self::$user,self::$password,self::$database);
+if($conn->connect_error)
+{
+die("<div class=\"alert alert-danger\" role=\"alert\">Database Connection Error !".
+$conn->connect_error."</div>");
+}
+$conn->query("SET CHARACTER SET utf8");
+$conn->query("SET SESSION collation_connection ='utf8_general_ci'");
+return $conn;
+}
+
+function insert($table_name, $data){
+$sql = "INSERT INTO ".$table_name." (";
+$sql .= implode(",", array_keys($data)) . ') VALUES (';
+$sql .= "'" . implode("','", array_values($data)) . "')";
+if($this->conn->query($sql) === TRUE)
+{
+return true;
+}
+else
+{
+echo "Error: " . $sql . "<br>" . $this->conn->error;; 
+}
+}
+
+function runQuery($query){
+$result = $this->conn->query($query);
+while($row=mysqli_fetch_assoc($result)) {
+$resultset[] = $row;
+}
+if(!empty($resultset))
+{
+return $resultset;
+}
+else {
+return array();
+}
+}
+
+function numRows($query) {
+$result = $this->conn->query($query);
+$rowcount = $result->num_rows;
+return $rowcount;
+}
+
+function executeUpdate($query) {
+$result = $this->conn->query($query);
+return $result;
+}
+function __destruct() {
+$this->conn->close();
+//echo "Destuctor Called"; 
+}
+}
+
+DBController::$host = $db_server;
+DBController::$user = $db_username;
+DBController::$password = $db_password;
+DBController::$database = $db_name;
+
+?>
+<?php
+
+
+spl_autoload_register(function($className){
+$possiblePaths = array();
+$path = strtolower($className) . ".php";
+$possiblePaths[] = 'Model/'.$path;
+$possiblePaths[] = 'Controller/'.$path; 
+foreach($possiblePaths as $path){
+    $path = __DIR__ . '/'.$path;;
+    if (file_exists($path)) {
+    require_once $path;
+    break;
+    }
+    }
+    })
+   
+   
+   ?>
+   <?php
+   
+   
+    require_once('class_loader.php'); 
+    $usernameErr= $passwordErr= $passwordErr2 = $newpasswordErr= $rpasswordErr=
+    $photoErr = "";
+     $username = $password =$password2= $newpassword = "";
+     $degree=array();
+     if (isset($_GET["delete"])) {
+     $user = new UserModel();
+     if ($user->deleteUser($_GET["delete"])) {
+     echo "Success";
+     }
+    
+     } 
+     if (isset($_POST["UpdateUser"])) {
+
+        $id = $_POST["edit"];
+        $password2 = $_POST["password"];
+        // Validate password strength
+        $uppercase = preg_match('@[A-Z]@', $password2);
+        $lowercase = preg_match('@[a-z]@', $password2);
+        $number = preg_match('@[0-9]@', $password2);
+        $specialChars = preg_match('@[^\w]@', $password2);
+       
+        if (empty($password2)) {
+        $passwordErr = "Password is required";
+        }
+       
+        else if( !$specialChars || strlen($password2) < 8) {
+        $passwordErr2 = 'Password should be at least 8 characters
+       and one special character.';
+        }
+       
+        else if (empty($_POST["name"])) {
+        $passwordErr = "Name is required";
+        }
+        else if (empty($_POST["email"])) {
+        $passwordErr = "Name is required";
+        }
+        else{} 
+        $target_dir = "uploads/";
+        $target_file = $target_dir . basename($_FILES["photo"]["name"]);
+        $uploadOk = 1;
+        $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+       
+        // Check if image file is a actual image or fake image
+        if(isset($_POST["UpdateUser"])) {
+        $check = getimagesize($_FILES["photo"]["tmp_name"]);
+        if($check !== false) {
+        $photoErr = "File is an image - " . $check["mime"] . ".";
+        $uploadOk = 1;
+        } else {
+        $photoErr = "File is not an image.";
+        $uploadOk = 0;
+        }
+        }
+       
+        // Check if file already exists
+        if (file_exists($target_file)) {
+        $photoErr = "Sorry, file already exists.";
+        $uploadOk = 0;
+        }    
+        // Check file size
+ if ($_FILES["photo"]["size"] > 400000) {
+ $photoErr = "Sorry, your file is too large.";
+ $uploadOk = 0;
+ }
+
+ // Allow certain file formats
+ if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType !=
+"jpeg"
+ && $imageFileType != "gif" ) {
+ $photoErr = "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+ $uploadOk = 0;
+ }
+
+ // Check if $uploadOk is set to 0 by an error
+ if ($uploadOk == 0) {
+ $photoErr = "Sorry, your file was not uploaded.";
+ // if everything is ok, try to upload file
+ } else {
+ if (move_uploaded_file($_FILES["photo"]["tmp_name"], $target_file)) 
+ {
+
+
+    $user = new UserModel();
+    $user->setName($_POST["name"]);
+    $user->setEmail($_POST["email"]);
+    $user->setPassword($_POST["newpassword"]);
+    $user->setPhoto(basename(
+   $_FILES["photo"]["name"]));
+    if ($user->editUser($id)) {
+    echo "Success";
+    }
+    }
+    else {
+    $photoErr = "Sorry, there was an error ";
+    }
+    } 
+} 
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+if (isset($_POST["addUser"])) { 
+    if($_POST["rnewpassword"]!=$_POST["newpassword"])
+    {
+    $newpasswordErr = "Password & Confirm Password not Matched";
+    }
+   
+    else{
+   
+    $password2 = $_POST["newpassword"];
+    // Validate password strength
+    $uppercase = preg_match('@[A-Z]@', $password2);
+    $lowercase = preg_match('@[a-z]@', $password2);
+    $number = preg_match('@[0-9]@', $password2);
+    $specialChars = preg_match('@[^\w]@', $password2);
+   
+    if (empty($password2)) {
+    $passwordErr = "Password is required";
+    }
+   
+    else if( !$specialChars || strlen($password2) < 8) {
+    $passwordErr2 = 'Password should be at least 8 characters 
+    and one special character.';
+ }
+
+ else if (empty($_POST["name"])) {
+ $passwordErr = "Name is required";
+ }
+ else if (empty($_POST["email"])) {
+ $passwordErr = "Name is required";
+ }
+ else{}
+
+ $target_dir = "uploads/";
+ $target_file = $target_dir . basename($_FILES["photo"]["name"]);
+ $uploadOk = 1;
+ $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+
+ // Check if image file is a actual image or fake image
+ if(isset($_POST["addUser"])) {
+ $check = getimagesize($_FILES["photo"]["tmp_name"]);
+ if($check !== false) {
+    $photoErr = "File is an image - " . $check["mime"] . ".";
+    $uploadOk = 1;
+    } else {
+    $photoErr = "File is not an image.";
+    $uploadOk = 0;
+    }
+    }
+   
+    // Check if file already exists
+    if (file_exists($target_file)) {
+    $photoErr = "Sorry, file already exists.";
+    $uploadOk = 0;
+    } 
+    // Check file size
+ if ($_FILES["photo"]["size"] > 400000) {
+ $photoErr = "Sorry, your file is too large.";
+ $uploadOk = 0;
+ }
+
+ // Allow certain file formats
+ if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType !=
+"jpeg"
+ && $imageFileType != "gif" ) {
+ $photoErr = "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+ $uploadOk = 0;
+ }
+
+ // Check if $uploadOk is set to 0 by an error
+ if ($uploadOk == 0) {
+ $photoErr = "Sorry, your file was not uploaded.";
+ // if everything is ok, try to upload file
+ } else {
+ if (move_uploaded_file($_FILES["photo"]["tmp_name"], $target_file))
+ {
+
+
+    $user = new UserModel();
+    $user->setName($_POST["name"]);
+    $user->setEmail($_POST["email"]);
+    $user->setPassword($_POST["newpassword"]);
+    $user->setPhoto(basename(
+   $_FILES["photo"]["name"]));
+    if ($user->AddUser()) {
+    echo "Success";
+    }
+    }
+    else {
+    $photoErr = "Sorry, there was an error ";
+    }
+    }
+}
+}
+}
+?>
+<html>
+<head>
+
+ </head>
+ <body>
+<div class="single">
+ <form method="post" enctype="multipart/form-data" action="add_user.php">
+
+ <fieldset style="width:360px; "> 
+    <legend><b>Add New User</b></legend>
+ <div style="padding:5px;">
+ <span style="padding-right:100px;">Name</span>: <input type="text" name="name"
+value="">
+ <span class="error"></span>
+ </div>
+
+ <div style="padding:5px;">
+ <span style="padding-right:100px;">Email</span>: <input type="text" name="email"
+value="">
+ <span class="error"></span>
+ </div>
+
+ <div style="padding:5px;">
+ <span style="padding-right:80px;">Password</span>: <input type="text"
+name="newpassword" value="">
+ <span class="error"></span>
+ </div> 
+ <div style="padding:5px;">
+    <span style="padding-right:20px;">Confirm Password</span>: <input type="text"
+   name="rnewpassword" value="">
+    <span class="error"></span>
+    </div>
+   
+    <div style="padding:5px;">
+    <span style="padding-right:20px;">Photo</span>: <input type="file" name="photo"
+   value="">
+    <span class="error"></span>
+    </div>
+   
+    <hr>
+    <div style="padding:5px;">
+    <input type="submit" name="addUser" value="Submit">
+   
+    </div>
+    </fieldset>
+   
+    </form>
+   
+   </div> 
+   <div class="single">
+    <form method="post" enctype="multipart/form-data" action="add_user.php">
+   
+    <fieldset style="width:360px; ">
+   
+    <legend><b>All User</b></legend>
+    <table border="1">
+    <thead>
+    <tr>
+    <td>Name</td>
+    <td>Email</td>
+    <td>Password</td>
+    </tr>
+    </thead>
+   <tbody>
+    <?php
+    $u = new UserModel();
+    $users = $u->getAllUsers(); 
+    foreach ($users as $user) {
+        echo "<tr>
+        <td>".$user['Name']."</td>
+        <td>".$user['Email']."</td>
+        <td>".$user['Password']."</td>
+        <td>
+        <a href=user.php?delete=".$user['ID'].">delete</a>
+        <a href=edit_user.php?edit=".$user['ID'].">edit</a>
+        </td>
+        </tr>";
+        }
+        ?> 
+    </tbody>
+</table>
+</fieldset>
+
+</form>
+
+</div>
+
+
+</body>
+</html>
+<?php
+require_once('class_loader.php');
+$users = array();
+if (isset($_GET["search"])) { 
+    $text = $_GET["search"];
+ $u = new UserModel();
+ $users = $u->searchUser($text);
+ }
+?>
+ <html>
+<head>
+
+ </head>
+ <body> 
+    <div class="single">
+        <form method="get" action="search.php">
+       
+        <fieldset style="width:360px; ">
+       
+        <legend><b>Search User</b></legend>
+        <div style="padding:5px;">
+        <span style="padding-right:100px;">Name</span>: <input type="text"
+       name="search" value="">
+        <span class="error"></span>
+        </div>
+       
+        <hr>
+        <div style="padding:5px;">
+        <input type="submit" name="addUser" value="Submit">
+       
+        </div>
+        <table border="1">
+        <thead>
+        <tr>
+        <td>Name</td> 
+        <td>Email</td>
+        <td>Password</td>
+        </tr>
+        </thead>
+       <tbody>
+        <?php
+        foreach ($users as $user) {
+        echo "<tr>
+        <td>".$user['Name']."</td>
+        <td>".$user['Email']."</td>
+        <td>".$user['Password']."</td>
+        <td>
+        <a href=user.php?delete=".$user['ID'].">delete</a>
+        <a href=edit_user.php?edit=".$user['ID'].">edit</a>
+    </td>
+</tr>";
+}
+?>
+</tbody>
+</table>
+</fieldset>
+
+</form>
+
+</div> 
+<div class="single">
+
+
+</div>
+
+
+ </body>
+</html>
+<?php
+
+
+ require_once('class_loader.php');
+?>
+<html>
+    <head>
+
+    </head>
+    <body>
+   <?php
+   $id = null;
+   if (isset($_GET["edit"])) {
+    $id = $_GET["edit"];
+   
+    }
+   $u = new UserModel();
+   $users = $u->getUserByID($id);
+   foreach ($users as $user) {
+    ?> 
+    <div class="single">
+        <form method="post" enctype="multipart/form-data" action="user.php?edit=<?php echo $user['ID'];?>">
+       
+        <fieldset style="width:360px; ">
+       
+        <legend><b>Edit User</b></legend>
+        <div style="padding:5px;">
+        <span style="padding-right:100px;">Name</span>: <input type="text" name="name"
+       value="<?php echo $user['Name'];?>">
+        <span class="error"></span>
+        </div>
+       
+        <div style="padding:5px;">
+        <span style="padding-right:100px;">Email</span>: <input type="text" name="email"
+       value="<?php echo $user['Email'];?>">
+        <span class="error"></span>
+        </div>
+        <div style="padding:5px;">
+        <span style="padding-right:100px;">Password</span>: <input type="text"
+       name="password" value="<?php echo $user['Password'];?>">
+        <span class="error"></span>
+        </div>
+       
+        <div style="padding:5px;">
+            <span style="padding-right:20px;">Photo</span>: <input type="file" name="photo"
+value="">
+ <span class="error"></span>
+ </div>
+
+ <hr>
+ <div style="padding:5px;">
+ <input type="hidden" name="edit" value="<?php echo $user['ID'];?>">
+ <input type="submit" name="UpdateUser" value="Submit">
+
+ </div>
+ </fieldset>
+
+ </form>
+
+</div>
+<?php } ?> 
+</body>
+</html>
+<?php
+
+ require_once 'Model.php';
+ /**
+ *
+ */
+ class UserModel
+ {
+ private $id;
+ private $name;
+ private $email; 
+ private $password;
+ private $photo;
+ private $isAdmin;
+ private $isActive;
+ private $dbConn;
+ function setId($id) { $this->id = $id; }
+ function getId() { return $this->id; }
+ function setName($name) { $this->name = $name; }
+ function getName() { return $this->name; }
+ function setEmail($email) { $this->email = $email; }
+ function getEmail() { return $this->email; }
+ function setPassword($password) { $this->password = $password; }
+ function getPassword() { return $this->password; }
+ function setPhoto($photo) { $this->photo = $photo; }
+ function getPhoto() { return $this->photo; }
+ function setIsAdmin($isAdmin) { $this->isAdmin = $isAdmin; }
+ function getIsAdmin() { return $this->isAdmin; }
+ function setIsActive($isActive) { $this->isActive = $isActive; }
+ function getIsActive() { return $this->isActive; }
+
+ function __construct()
+ {
+ $this->dbConn = new DBController();
+ }
+ public function addUser()
+ {
+
+ $sql = "INSERT INTO `users` (`Name`, `Email`, `Password`, `isActive`, isAdmin, `Photo`) VALUES
+('$this->name', '$this->email', '$this->password','1', '0' ,'$this->photo');";
+ return $this->dbConn->executeUpdate($sql);
+ }
+ public function editUser($id)
+ {
+
+ $sql = "INSERT INTO `users` set
+ `Name`='$this->name',
+ `Email`='$this->email',
+ `Password` = '$this->password',
+ `Photo` = '$this->photo' where ID='$id'";
+
+ return $this->dbConn->executeUpdate($sql);
+ } 
+ public function deleteUser($id)
+ {
+ $sql = "DELETE FROM `users` WHERE `users`.`ID` = '$id'";
+ return $this->dbConn->executeUpdate($sql);
+ }
+ public function getAllUsers()
+ {
+ $sql = "SELECT * FROM `users`";
+ return $this->dbConn->runQuery($sql);
+ }
+ public function searchUser($text)
+ {
+ $sql = "SELECT * FROM `users` where Name LIKE '%".$text."%'";
+
+ return $this->dbConn->runQuery($sql);
+ } 
+ public function getUserByID($id=0)
+ {
+ $sql = "SELECT * FROM `users` WHERE `ID`='$id'";
+ return $this->dbConn->runQuery($sql);
+ }
+ public function FunctionName($value='')
+ {
+ $sql = "SELECT * FROM `users` WHERE `ID`='$id'";
+ return $this->dbConn->executeUpdate($sql);
+ } 
+}
+?>               
